@@ -66,7 +66,7 @@ void sinistra(int vel) {//
   digitalWrite(dirDX, LOW);
   analogWrite(velSX, vel);
   analogWrite(velDX, vel);
-  //Serial.println("Indietro");
+  //Serial.println("Sinistra");
 }
 
 void destra(int vel) {//
@@ -74,7 +74,7 @@ void destra(int vel) {//
   digitalWrite(dirDX, HIGH);
   analogWrite(velSX, vel);
   analogWrite(velDX, vel);
-  //Serial.println("Avanti");
+  //Serial.println("Destra");
 }
 
 void avanti(int vel) {//
@@ -82,7 +82,7 @@ void avanti(int vel) {//
   digitalWrite(dirDX, LOW);
   analogWrite(velSX, vel);
   analogWrite(velDX, vel);
-  //Serial.println("Destra");
+  //Serial.println("Avanti");
 }
 
 void indietro(int vel) {//
@@ -90,7 +90,7 @@ void indietro(int vel) {//
   digitalWrite(dirDX, HIGH);
   analogWrite(velSX, vel);
   analogWrite(velDX, vel);
-  //Serial.println("Sinistra");
+  //Serial.println("Indietro");
 }
 
 void girodx(int gradi)
@@ -183,18 +183,16 @@ void qtrsingolo() {
   for (int i = 0; i < 4; i++) {
     s_sensori_sx += sensorValues[i];
   }
-  //Serial.print(s_sensori_sx);Serial.print("        ");
   for (int i = 5; i < 8; i++) {
     s_sensori_cx += sensorValues[i];
   }
-  //Serial.print(s_sensori_cx);Serial.print("        ");
   for (int i = 9; i < 13; i++) {
     s_sensori_dx += sensorValues[i];
   }
   
-  //Serial.print(s_sensori_cx - s_sensori_sx);Serial.print("        ");Serial.println(s_sensori_cx - s_sensori_dx);
-  //Serial.print(s_sensori_sx);Serial.print("   ");Serial.print(s_sensori_cx);Serial.print("   ");Serial.print(s_sensori_dx);Serial.println("   ");
-  //Serial.println(somma_sensori());
+  //Serial.print("Differenza s_sx e s_dx: ");Serial.print(s_sensori_cx - s_sensori_sx);Serial.print("        ");Serial.println(s_sensori_cx - s_sensori_dx);
+  //Serial.print("s_sensori sx, cx, dx: ")Serial.print(s_sensori_sx);Serial.print("   ");Serial.print(s_sensori_cx);Serial.print("   ");Serial.print(s_sensori_dx);Serial.println("   ");
+  //Serial.print("Somma sensori: ")Serial.println(somma_sensori());
   
   if ((s_sensori_cx - s_sensori_sx < 0) && (s_sensori_cx - s_sensori_dx < 0) && (somma_sensori() < 8000) && (somma_sensori() > 5500)) {
     
@@ -261,7 +259,7 @@ int leggiRGB(Adafruit_TCS34725 &TCSensor, int sens)
   float red, green, blue;
   TCSensor.getRGB(&red, &green, &blue);
   int somma = int(uint8_t(red) + uint8_t(green) + uint8_t(blue));
-  //Serial.print("somma: "); Serial.println(somma);
+  //Serial.print("somma RGB: "); Serial.println(somma);
   return somma;
 }
 
@@ -271,8 +269,7 @@ bool leggiBianco(Adafruit_TCS34725 &TCSensor, int sens)
   tcaselect(sens);
   float red, green, blue;
   delay(600);  // takes 50ms to read
-  Serial.print("White"); Serial.print(sens); Serial.println("?");
-  Serial.print("R:"); Serial.print(red); Serial.print("G:"); Serial.print(green); Serial.println("B:"); Serial.println(blue);
+  Serial.print("White"); Serial.print(sens); Serial.print(": R "); Serial.print(red); Serial.print("  G "); Serial.print(green); Serial.print("  B "); Serial.println(blue);
   if (red > 240 and green > 240 and blue > 240)
   {
     return true;
@@ -340,7 +337,10 @@ long dist_tof(int sens)
 }
 
 void stanza() { //DA FARE ###########################################################################
-
+  Serial.println("======================================== EVACUATION ZONE");
+  digitalWrite(ledPin,HIGH);
+  ferma();
+  delay(100000);
 }
 
 void bianco()
@@ -378,22 +378,22 @@ void setup() {
   Wire.begin();
   Serial.begin(9600);
   Serial.println("");Serial.println("======================================== SETUP START");
-  pinMode(7, INPUT_PULLUP);
+  pinMode(2, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT);
-  qtr.setTypeRC();
-  qtr.setSensorPins((const uint8_t[]) {
-    23, 22, 25, 24, 27, 26, 29, 28, 31, 30, 33, 32, 35
-  }, SensorCount);
-
   pinMode(dirDX, OUTPUT);
   pinMode(dirSX, OUTPUT);
   pinMode(velDX, OUTPUT);
   pinMode(velSX, OUTPUT);
   delay(100);
-  pinMode(LED_BUILTIN, OUTPUT);
+  //pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(ledPin, HIGH);
 
+  
   Serial.println("QTR calibration");
+  qtr.setTypeRC();
+  qtr.setSensorPins((const uint8_t[]) {
+    23, 22, 25, 24, 27, 26, 29, 28, 31, 30, 33, 32, 35
+  }, SensorCount);
   qtr.calibrate();
   for (int i = 0; i < SensorCount; i++)
   {
@@ -409,23 +409,24 @@ void setup() {
   tcaselect(tof);
   if (!lox.begin()) {
     Serial.println(F("Failed to boot VL53L0X"));
-    while (1);
   }
 
   Serial.println("GYRO calibration");
   tcaselect(giroscopio);
-  mpu6050.begin();
+  if (!mpu6050.begin()) {
+    Serial.println(F("Failed to boot mpu6050"));
+  }
   delay(100);
   mpu6050.calcGyroOffsets(true);
   //mpu6050.setGyroOffsets(-1.25, 0.35, -0.45);
 
+  for (int i=0; i<30;i++){
+    tcaselect(giroscopio);
+    mpu6050.update();
+    gradX = mpu6050.getAngleX();
+  }
+  
   digitalWrite(ledPin, LOW);
-  /*
-    tcaselect(5);
-    if (!lox.begin()) {
-    Serial.println(F("Failed to boot VL53L0X"));
-    while(1);
-    }*/
   Serial.println("\nSETUP END\n======================================== LOOP START");
 }
 
@@ -443,7 +444,7 @@ void PID_control() {
   lastError = error;
   int varsomma = somma_sensori();
   
-  Serial.print("Position: ");Serial.print(position);Serial.print("    somma_sensori: ");Serial.println(varsomma);
+  //Serial.print("Position: ");Serial.print(position);Serial.print("    somma_sensori: ");Serial.println(varsomma);
 
   qtrsingolo();
   
@@ -509,7 +510,7 @@ void PID_control() {
 
 void PID_discesa() {
   uint16_t position = qtr.readLineBlack(sensorValues);
-  Serial.println(position);
+  Serial.print("Position: ");Serial.println(position);
   int error = 6000 - position;
   P = error;
   I = I + error;
@@ -613,17 +614,17 @@ void loop() {
   gradX = mpu6050.getAngleX();
   //gradY = mpu6050.getAngleY();
 
-  //Serial.print(gradX); Serial.print("     "); Serial.println(gradY);
-
+  //Serial.print("GradX: ");Serial.println(gradX); Serial.print("     GradY: "); Serial.println(gradY);
+  //Serial.print("Bottone: ")Serial.println(digitalRead(2));
   if (!presenza_discesa && gradX < 3) {
     presenza_discesa = true;
   }
   else if (gradX >= 8) {
+    Serial.println("Start descent");
     while (gradX >= 8) {
       tcaselect(giroscopio);
       mpu6050.update();
       gradX = mpu6050.getAngleX();
-      Serial.println("Start descent");
       PID_discesa();
       if ((gradX == 15 && gradXvecchio == 16) && presenza_discesa) {
         fine_discesa();
@@ -632,10 +633,13 @@ void loop() {
       gradXvecchio = gradX;
     }
   }
-
+  else if (!digitalRead(2)){
+    ferma();
+    delay(100);
+    if (!digitalRead(2)){
+      stanza();
+    }
+  }
+  
   gradXvecchio = gradX;
-  /*if (!digitalRead(7)){
-    girosx(1000);
-    }*/
-
 }
