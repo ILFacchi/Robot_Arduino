@@ -11,9 +11,8 @@ QTRSensors qtr;
 const uint8_t SensorCount = 13;
 uint16_t sensorValues[SensorCount];
 
-int massimi[13]={2500, 1532, 1456, 1296, 1460, 1216, 1376, 1376, 1456, 1456, 1456, 1536, 2024};
-int minimi[13]={580, 508, 504, 436, 508, 436, 508, 508, 508, 508, 508, 508, 584};
-
+int massimi[13]={2264, 1376, 1304, 1216, 1376, 1136, 1296, 1296, 1296, 1372, 1300, 1376, 1784};
+int minimi[13]={660, 508, 508, 508, 508, 436, 508, 508, 508, 508, 508, 576, 584};
 
 //unsigned long t1, dt; //non credo serva
 
@@ -208,6 +207,9 @@ void qtrsingolo() {
     if (qtrbassi >= 2) {
       Serial.println("Crossroads");
       ferma();
+      delay(100);
+      indietrocm(2);
+      ferma();
       contrVerde();
     }
   }
@@ -283,7 +285,7 @@ bool leggiBianco(Adafruit_TCS34725 &TCSensor, int sens)
 void contrVerde()// DA MIGLIORARE#############################################################################à
 {
   Serial.println("Green Check");
-
+  delay(500);
   if (leggiVerde(RightColorSensor, sens_dx)) //se vede verde a destra
   {
     if (leggiVerde(LeftColorSensor, sens_sx)) //se vede verde anche a sinistra
@@ -378,7 +380,7 @@ void setup() {
   Wire.begin();
   Serial.begin(9600);
   Serial.println("");Serial.println("======================================== SETUP START");
-  pinMode(2, INPUT_PULLUP);
+  pinMode(47, INPUT_PULLUP);
   pinMode(ledPin, OUTPUT);
   pinMode(dirDX, OUTPUT);
   pinMode(dirSX, OUTPUT);
@@ -413,13 +415,11 @@ void setup() {
 
   Serial.println("GYRO calibration");
   tcaselect(giroscopio);
-  if (!mpu6050.begin()) {
-    Serial.println(F("Failed to boot mpu6050"));
-  }
+  mpu6050.begin();
   delay(100);
   mpu6050.calcGyroOffsets(true);
   //mpu6050.setGyroOffsets(-1.25, 0.35, -0.45);
-
+  int gradX=0;
   for (int i=0; i<30;i++){
     tcaselect(giroscopio);
     mpu6050.update();
@@ -447,12 +447,18 @@ void PID_control() {
   //Serial.print("Position: ");Serial.print(position);Serial.print("    somma_sensori: ");Serial.println(varsomma);
 
   qtrsingolo();
-  
-  if (varsomma < 750 && old_position >= 5000 && old_position <= 7000)
+  if (!digitalRead(47)){
+    ferma();
+    delay(100);
+    if (!digitalRead(47)){
+      stanza();
+    }
+  }
+  else if (varsomma < 750 && old_position >= 5000 && old_position <= 7000)
   {
     bianco();
   }
-  else if (varsomma > 12000)
+  else if (varsomma > 12000) //vedere se variare con old_position
   {
     ferma();
     delay(100);
@@ -574,14 +580,14 @@ void fine_discesa() {
   Serial.println(position);
   if (position > 7000) {
     indietrocm(15);
-    girodx(15);
-    avanticm(11);
+    girodx(25);
+    avanticm(13);
     ferma();
   }
   else if (position < 5000) {
     indietrocm(15);
-    girosx(15);
-    avanticm(11);
+    girosx(25);
+    avanticm(13);
     ferma();
   }
 }
@@ -615,7 +621,7 @@ void loop() {
   //gradY = mpu6050.getAngleY();
 
   //Serial.print("GradX: ");Serial.println(gradX); Serial.print("     GradY: "); Serial.println(gradY);
-  //Serial.print("Bottone: ")Serial.println(digitalRead(2));
+  //Serial.print("Bottone: ")Serial.println(digitalRead(47));
   if (!presenza_discesa && gradX < 3) {
     presenza_discesa = true;
   }
@@ -633,10 +639,10 @@ void loop() {
       gradXvecchio = gradX;
     }
   }
-  else if (!digitalRead(2)){
+  else if (!digitalRead(47)){
     ferma();
     delay(100);
-    if (!digitalRead(2)){
+    if (!digitalRead(47)){
       stanza();
     }
   }
